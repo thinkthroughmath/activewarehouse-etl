@@ -27,6 +27,8 @@ module ETL #:nodoc:
       attr_accessor :disable_keys
       # replace existing records, not just insert
       attr_accessor :replace
+      # do bulk import by streaming data from the client
+      attr_accessor :client
 
       # Initialize the processor.
       #
@@ -56,6 +58,7 @@ module ETL #:nodoc:
         @field_enclosure = configuration[:field_enclosure]
         @disable_keys = configuration[:disable_keys] || false
         @replace = configuration[:replace] || false
+        @client = configuration[:client] || false
 
         raise ControlError, "Target must be specified" unless @target
         raise ControlError, "Table must be specified" unless @table
@@ -71,6 +74,7 @@ module ETL #:nodoc:
           conn.truncate(table_name) if truncate
           options = {}
           options[:columns] = columns
+          options[:client] = client
 
           options[:disable_keys] = true if disable_keys
           options[:replace] = true if replace
