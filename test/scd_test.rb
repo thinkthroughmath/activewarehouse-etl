@@ -143,6 +143,63 @@ class ScdTest < Test::Unit::TestCase
           assert_equal 3, count_bobs
         end
       end
+      context "on run 2 with proc" do
+        setup do
+          do_type_2_with_proc_run(1)
+          do_type_2_with_proc_run(2)
+        end
+        should "insert new record" do
+          assert_equal 2, count_bobs
+        end
+        should "keep the primary key of the original version" do
+          assert_not_nil find_bobs.detect { |bob| 1 == bob.id }
+        end
+        should "increment the primary key for the new version" do
+          assert_not_nil find_bobs.detect { |bob| 2 == bob.id }
+        end
+        should "expire the old record" do
+          original_bob = find_bobs.detect { |bob| 1 == bob.id }
+          new_bob = find_bobs.detect { |bob| 2 == bob.id }
+          assert_equal new_bob.effective_date, original_bob.end_date
+        end
+        should "keep the address for the expired record" do
+          assert_boston_address(find_bobs.detect { |bob| 1 == bob.id })
+        end
+        should "update the address on the new record" do
+          assert_los_angeles_address(find_bobs.detect { |bob| 2 == bob.id })
+        end
+        should "activate the new record" do
+          assert_in_delta 1, current_datetime.to_time.to_i, find_bobs.detect { |bob| 2 == bob.id }.effective_date.to_time.to_i
+        end
+        should "set the end date for the new record" do
+          assert_equal @end_of_time, find_bobs.detect { |bob| 2 == bob.id }.end_date
+        end
+        should "shift the latest version" do
+          original_bob = find_bobs.detect { |bob| 1 == bob.id }
+          new_bob = find_bobs.detect { |bob| 2 == bob.id }
+          assert !original_bob.latest_version?
+          assert new_bob.latest_version?
+        end
+        should "only execute a change once" do
+          do_type_2_run(2)
+          assert_equal 2, count_bobs, "scheduled load expected to be empty"
+        end
+        should "insert new records on revert" do
+          do_type_2_run(1)
+          assert_equal 3, count_bobs
+        end
+        should "update address on new record on revert" do
+          do_type_2_run(1)
+          assert_boston_address(find_bobs.detect { |bob| 3 == bob.id })
+        end
+        should "only delete one row on an scd change" do
+          # Two records right now
+          assert_equal 2, count_bobs
+          do_type_2_with_proc_run(1) # put third version in (same as first version, but that's irrelevant)
+          # was failing because first and second versions were being deleted.
+          assert_equal 3, count_bobs
+        end
+      end
       context "on non sdc fields that change" do
         setup do
           do_type_2_run_with_only_city_state_zip_scd(1)
@@ -183,6 +240,13 @@ class ScdTest < Test::Unit::TestCase
     ENV['run_number'] = run_num.to_s
     assert_nothing_raised do
       run_ctl_file("scd_test_type_2.ctl")
+    end
+  end
+
+  def do_type_2_with_proc_run(run_num)
+    ENV['run_number'] = run_num.to_s
+    assert_nothing_raised do
+      run_ctl_file("scd_test_type_2_proc_finder.ctl")
     end
   end
   

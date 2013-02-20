@@ -1,6 +1,5 @@
 module ETL #:nodoc:
   module Control #:nodoc:
-    # Base class for destinations.
     class DatabaseScdRowFinder
       attr_reader :dimension_table, :natural_key, :scd_latest_version_field, :scd_type, :connection
 
@@ -31,6 +30,23 @@ module ETL #:nodoc:
           statement << "#{nk} = #{ActiveRecord::Base.send(:quote_bound_value, row[nk], connection)}"
         end
         statement.join(" AND ")
+      end
+    end
+  end
+end
+
+module ETL #:nodoc:
+  module Control #:nodoc:
+    class ProcScdRowFinder
+      attr_reader :row_proc
+
+      def initialize(row_proc)
+        @row_proc = row_proc
+      end
+
+      # Call the proc to try and find the row
+      def find_preexisting_row(row)
+        row_proc.call(row)
       end
     end
   end

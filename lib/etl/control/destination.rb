@@ -52,9 +52,7 @@ module ETL #:nodoc:
         @buffer_size = configuration[:buffer_size] ||= 100
         @condition = configuration[:condition]
         @append_rows = configuration[:append_rows]
-        if scd?
-          @scd_row_finder = DatabaseScdRowFinder.new(dimension_table, natural_key, scd_latest_version_field, scd_type, connection)
-        end
+        @scd_row_finder = determine_scd_row_finder
       end
 
       # Get the current row number
@@ -155,8 +153,17 @@ module ETL #:nodoc:
       end
 
       def scd_row_finder_proc
+        scd? ? configuration[:scd][:row_finder] : nil
+      end
+
+      def determine_scd_row_finder
         return nil unless scd?
-        configuration[:scd][:row_finder]
+
+        if scd_row_finder_proc
+          ProcScdRowFinder.new(scd_row_finder_proc)
+        else
+          DatabaseScdRowFinder.new(dimension_table, natural_key, scd_latest_version_field, scd_type, connection)
+        end
       end
 
       # Get the Slowly Changing Dimension effective date field. Defaults to
