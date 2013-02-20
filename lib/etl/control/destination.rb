@@ -52,6 +52,7 @@ module ETL #:nodoc:
         @buffer_size = configuration[:buffer_size] ||= 100
         @condition = configuration[:condition]
         @append_rows = configuration[:append_rows]
+        @scd_row_finder = DatabaseScdRowFinder.new(dimension_table, natural_key, scd_latest_version_field, scd_type, connection)
       end
 
       # Get the current row number
@@ -273,18 +274,6 @@ module ETL #:nodoc:
         natural_key.any? && natural_key.all? { |key| row.has_key?(key) }
       end
 
-      # Helper for generating the SQL where clause that allows searching
-      # by a natural key
-      def natural_key_equality_for_row(row)
-        statement = []
-        values = []
-        natural_key.each do |nk|
-          statement << "#{nk} = #{ActiveRecord::Base.send(:quote_bound_value, row[nk], connection)}"
-        end
-        statement = statement.join(" AND ")
-        return statement
-      end
-
       # Do all the steps required when a SCD *has* changed.  Exact steps
       # depend on what type of SCD we're handling.
       def process_scd_change(row)
@@ -352,12 +341,8 @@ module ETL #:nodoc:
 
       # Find the version of this row that already exists in the datawarehouse.
       def preexisting_row(row)
-        q = "SELECT * FROM #{dimension_table} WHERE #{natural_key_equality_for_row(row)}"
-        q << " AND #{scd_latest_version_field}" if scd_type == 2
-
         ETL::Engine.logger.debug "looking for original record"
-        result = connection.select_one(q)
-
+        result = @scd_row_finder.find_preexisting_row(row)
         ETL::Engine.logger.debug "Result: #{result.inspect}"
 
         result ? ETL::Row[result.symbolize_keys!] : nil
