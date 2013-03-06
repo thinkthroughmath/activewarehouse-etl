@@ -122,6 +122,7 @@ class SQLResolver
   end
   
   def load_cache
+    puts "Caching values for #{table_name}..."
     q = "SELECT id, #{field.join(', ')} FROM #{table_name}"
     # puts q
     @connection.select_all(q).each do |record|
