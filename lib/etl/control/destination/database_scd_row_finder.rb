@@ -27,26 +27,9 @@ module ETL #:nodoc:
         statement = []
         values = []
         natural_key.each do |nk|
-          statement << "#{nk} = #{ActiveRecord::Base.send(:quote_bound_value, row[nk], connection)}"
+          statement << "#{nk} = #{connection.quote(row[nk])}"
         end
         statement.join(" AND ")
-      end
-    end
-  end
-end
-
-module ETL #:nodoc:
-  module Control #:nodoc:
-    class ProcScdRowFinder
-      attr_reader :row_proc
-
-      def initialize(row_proc)
-        @row_proc = row_proc
-      end
-
-      # Call the proc to try and find the row
-      def find_preexisting_row(row)
-        row_proc.call(row)
       end
     end
   end

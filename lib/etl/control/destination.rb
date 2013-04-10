@@ -369,8 +369,15 @@ module ETL #:nodoc:
           ETL::Engine.logger.debug "Row: #{row.inspect}"
           ETL::Engine.logger.debug "Existing Row: #{@existing_row.inspect}"
           ETL::Engine.logger.debug "comparing: #{row[csd_field].to_s} != #{@existing_row[csd_field].to_s}"
-          x=row[csd_field].to_s != @existing_row[csd_field].to_s
+          x = row[csd_field].to_s != @existing_row[csd_field].to_s
           ETL::Engine.logger.debug x
+          if x
+            ETL::Engine.logger.info "Found Mismatch:"
+            ETL::Engine.logger.info "Row: #{row.inspect}"
+            ETL::Engine.logger.info "Existing Row: #{@existing_row.inspect}"
+            ETL::Engine.logger.info "Field: #{csd_field}"
+            ETL::Engine.logger.info "Compared: #{row[csd_field].to_s} to #{@existing_row[csd_field].to_s}"
+          end
           x
         }
       end
