@@ -97,9 +97,6 @@ module ETL #:nodoc:
             values.collect! { |v| enclose + v.gsub(/(#{enclose})/, '\\\\\1') + enclose }
           end
 
-          # force encoding
-          values.each { |v| v.force_encoding('iso-8859-1').encode!(encoding) } if encoding
-
           # write the values joined by the separator defined in the configuration
           f.write(values.join(separator))
 
