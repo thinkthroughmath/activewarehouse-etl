@@ -301,13 +301,7 @@ module ETL #:nodoc:
           # and insert a new expired version
 
           # If there is no truncate then the row will exist twice in the database
-          delete_outdated_record
-
-          ETL::Engine.logger.debug "expiring original record"
-          @existing_row[scd_end_date_field] = @timestamp
-          @existing_row[scd_latest_version_field] = false
-
-          buffer << @existing_row
+          update_outdated_record
 
         elsif scd_type == 1
           # SCD Type 1: only the new row should be added
@@ -336,21 +330,7 @@ module ETL #:nodoc:
       def process_scd_match(row)
         ETL::Engine.logger.debug "SCD fields match"
 
-        if scd_type == 2 && has_non_scd_field_changes?(row)
-          ETL::Engine.logger.debug "Non-SCD field changes"
-          # Copy important data over from original version of record
-          row[primary_key]              = @existing_row[primary_key]
-          row[scd_end_date_field]       = @existing_row[scd_end_date_field]
-          row[scd_effective_date_field] = @existing_row[scd_effective_date_field]
-          row[scd_latest_version_field] = @existing_row[scd_latest_version_field]
-
-          # If there is no truncate then the row will exist twice in the database
-          delete_outdated_record
-
-          buffer << row
-        else
-          # The record is totally the same, so skip it
-        end
+        # do nothing else.
       end
 
       # Find the version of this row that already exists in the datawarehouse.
@@ -403,6 +383,26 @@ module ETL #:nodoc:
 
         q = "DELETE FROM #{dimension_table} WHERE #{primary_key} = #{@existing_row[primary_key]}"
         connection.delete(q)
+      end
+
+      # Utility for updating a row that has outdated information.  Note
+      # that this directly modifies the database, even if this is a file
+      # destination.  It needs to do this because you can't do updates in a
+      # bulk load.
+      def update_outdated_record
+        ETL::Engine.logger.debug "updating old row"
+
+        q = "
+          UPDATE
+            #{dimension_table}
+          SET
+            #{scd_latest_version_field} = false,
+            #{scd_end_date_field}       = '#{@timestamp}'
+          WHERE
+            #{primary_key} = #{@existing_row[primary_key]}
+        "
+
+        connection.execute(q)
       end
 
       # Schedule the latest, greatest version of the row for insertion
