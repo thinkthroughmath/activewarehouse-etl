@@ -1,0 +1,98 @@
+GIT
+  remote: https://github.com/thinkthroughmath/adapter_extensions.git
+  revision: 519051a48bb42643cf7a25ae8f11d201e8c2eceb
+  specs:
+    adapter_extensions (1.0.0)
+      activerecord (>= 3.0.0)
+      activesupport (>= 3.0.0)
+      rake (>= 0.8.3)
+
+PATH
+  remote: .
+  specs:
+    activewarehouse-etl (1.0.1)
+      activerecord (>= 4.0.0)
+      activesupport (>= 4.0.0)
+      adapter_extensions (>= 0.9.5.rc1)
+      fastercsv (>= 1.2.0)
+      protected_attributes (>= 1.0.1)
+      rake (>= 0.8.3)
+
+GEM
+  remote: https://rubygems.org/
+  specs:
+    activemodel (4.1.6)
+      activesupport (= 4.1.6)
+      builder (~> 3.1)
+    activerecord (4.1.6)
+      activemodel (= 4.1.6)
+      activesupport (= 4.1.6)
+      arel (~> 5.0.0)
+    activesupport (4.1.6)
+      i18n (~> 0.6, >= 0.6.9)
+      json (~> 1.7, >= 1.7.7)
+      minitest (~> 5.1)
+      thread_safe (~> 0.1)
+      tzinfo (~> 1.1)
+    arel (5.0.1.20140414130214)
+    builder (3.2.2)
+    cartesian (0.6.7)
+    coderay (1.0.8)
+    fastercsv (1.5.5)
+    flexmock (0.9.0)
+    guard (1.6.2)
+      listen (>= 0.6.0)
+      lumberjack (>= 1.0.2)
+      pry (>= 0.9.10)
+      terminal-table (>= 1.4.3)
+      thor (>= 0.14.6)
+    guard-shell (0.5.1)
+      guard (>= 1.1.0)
+    i18n (0.6.11)
+    json (1.8.1)
+    listen (0.7.2)
+    lumberjack (1.0.2)
+    method_source (0.8.1)
+    mini_portile (0.6.0)
+    minitest (5.4.1)
+    nokogiri (1.6.3.1)
+      mini_portile (= 0.6.0)
+    protected_attributes (1.0.8)
+      activemodel (>= 4.0.1, < 5.0)
+    pry (0.9.11.4)
+      coderay (~> 1.0.5)
+      method_source (~> 0.8)
+      slop (~> 3.4)
+    rake (10.3.2)
+    roo (1.13.2)
+      nokogiri
+      rubyzip
+      spreadsheet (> 0.6.4)
+    ruby-ole (1.2.11.7)
+    rubyzip (1.1.6)
+    shoulda (2.11.3)
+    slop (3.4.3)
+    spreadsheet (1.0.0)
+      ruby-ole (>= 1.0)
+    standalone_migrations (1.0.5)
+      activerecord (>= 3)
+      rake
+    terminal-table (1.4.5)
+    thor (0.17.0)
+    thread_safe (0.3.4)
+    tzinfo (1.2.2)
+      thread_safe (~> 0.1)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  activewarehouse-etl!
+  adapter_extensions!
+  cartesian
+  flexmock (~> 0.9.0)
+  guard
+  guard-shell
+  roo
+  shoulda (~> 2.11.3)
+  standalone_migrations (= 1.0.5)
