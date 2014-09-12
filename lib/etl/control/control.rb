@@ -2,6 +2,7 @@ module ETL #:nodoc:
   module Control #:nodoc:
     # The Context is passed to eval. 
     class Context
+      require 'minitest/autorun'
       require 'test/unit/assertions'
       include Test::Unit::Assertions
       attr_reader :control
