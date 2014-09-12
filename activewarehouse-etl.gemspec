@@ -27,6 +27,8 @@ Gem::Specification.new do |s|
   s.add_development_dependency('cartesian')
   s.add_development_dependency('guard')
   s.add_development_dependency('guard-shell')
+  s.add_development_dependency('standalone_migrations', '1.0.5')
+  s.add_development_dependency('roo')
 
   s.files              = `git ls-files`.split("\n")
   s.test_files         = `git ls-files -- {test}/*`.split("\n")

@@ -1,5 +1,5 @@
 def declare_gems(activerecord_version)
-  source :rubygems
+  source "https://rubygems.org"
 
   gem 'activerecord', activerecord_version
   gem 'adapter_extensions', :git => 'https://github.com/activewarehouse/adapter_extensions.git'
@@ -25,5 +25,7 @@ def declare_gems(activerecord_version)
   gem 'nokogiri'
   gem 'fastercsv'
 
-  gem 'standalone_migrations'
+  gem 'roo'
+
+  gem 'standalone_migrations', '1.0.5'
 end
