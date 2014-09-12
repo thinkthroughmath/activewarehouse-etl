@@ -1,3 +1,8 @@
+module Rails
+end
+
+require 'protected_attributes'
+
 module ETL #:nodoc:
   module Execution #:nodoc:
     # Base class for ETL execution information
