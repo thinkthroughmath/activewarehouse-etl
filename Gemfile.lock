@@ -11,8 +11,8 @@ PATH
   remote: .
   specs:
     activewarehouse-etl (1.0.1)
-      activerecord (>= 4.0.0)
-      activesupport (>= 4.0.0)
+      activerecord (>= 4.1.0)
+      activesupport (>= 4.1.0)
       adapter_extensions (>= 0.9.5.rc1)
       fastercsv (>= 1.2.0)
       protected_attributes (>= 1.0.1)
