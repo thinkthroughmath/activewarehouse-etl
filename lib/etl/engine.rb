@@ -495,13 +495,6 @@ module ETL #:nodoc:
       say "Avg transforms: #{Engine.rows_read/benchmarks[:transforms]} rows/sec" if benchmarks[:transforms] > 0
       say "Avg writes: #{Engine.rows_read/benchmarks[:writes]} rows/sec" if benchmarks[:writes] > 0
 
-      # say "Avg time writing execution records: #{ETL::Execution::Record.average_time_spent}"
-      #
-      # ETL::Transform::Transform.benchmarks.each do |klass, t|
-#         say "Avg #{klass}: #{Engine.rows_read/t} rows/sec"
-#       end
-
-      ActiveRecord::Base.verify_active_connections!
       ETL::Engine.job.completed_at = Time.now
       ETL::Engine.job.status = (errors.length > 0 ? 'completed with errors' : 'completed')
       ETL::Engine.job.save!
