@@ -22,7 +22,7 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency('fastercsv',           '>= 1.2.0')
   s.add_runtime_dependency('adapter_extensions',  '>= 1.0.0')
 
-  s.add_development_dependency('shoulda', '~>2.11.3')
+  s.add_development_dependency('shoulda', '~>3.5.0')
   s.add_development_dependency('flexmock', '~>0.9.0')
   s.add_development_dependency('cartesian')
   s.add_development_dependency('guard')
