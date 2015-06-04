@@ -15,6 +15,7 @@ module ETL #:nodoc:
       attr_reader :truncate
       # Array of symbols representing the column load order
       attr_reader :columns
+      attr_reader :before_execute
       # The field separator (defaults to a comma)
       attr_accessor :field_separator
       # The field enclosure (defaults to nil)
@@ -49,16 +50,17 @@ module ETL #:nodoc:
         path = Pathname.new(configuration[:file])
         @file = path.absolute? ? path : Pathname.new(File.dirname(File.expand_path(control.file))) + path
 
-        @table = configuration[:table]
-        @truncate = configuration[:truncate] ||= false
-        @columns = configuration[:columns]
+        @table           = configuration[:table]
+        @truncate        = configuration[:truncate] ||= false
+        @columns         = configuration[:columns]
         @field_separator = (configuration[:field_separator] || ',')
-        @line_separator = (configuration[:line_separator] || "\n")
-        @null_string = (configuration[:null_string] || "")
+        @line_separator  = (configuration[:line_separator] || "\n")
+        @null_string     = (configuration[:null_string] || "")
         @field_enclosure = configuration[:field_enclosure]
-        @disable_keys = configuration[:disable_keys] || false
-        @replace = configuration[:replace] || false
-        @client = configuration[:client] || false
+        @disable_keys    = configuration[:disable_keys] || false
+        @replace         = configuration[:replace] || false
+        @client          = configuration[:client] || false
+        @before_execute  = configuration[:before_execute] || ->(conn) {}
 
         raise ControlError, "Target must be specified" unless @target
         raise ControlError, "Table must be specified" unless @table
@@ -86,6 +88,8 @@ module ETL #:nodoc:
             options[:fields][:enclosed_by] = field_enclosure if field_enclosure
             options[:fields][:terminated_by] = line_separator if line_separator
           end
+
+          before_execute.call(conn)
           conn.bulk_load(file, table_name, options)
         end
       end
