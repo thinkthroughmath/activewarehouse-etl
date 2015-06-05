@@ -69,7 +69,6 @@ module ETL #:nodoc:
       # Execute the processor
       def process
         return if ETL::Engine.skip_bulk_import
-        return if File.size(file) == 0
 
         conn = ETL::Engine.connection(target)
         conn.transaction do
