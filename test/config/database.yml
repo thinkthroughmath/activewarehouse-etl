@@ -2,20 +2,9 @@
 
 # a bit hackish - tests would require a refactoring instead
 
-mysql2: &mysql2
-  host: localhost
-  adapter: mysql2
-  database: activewarehouse_etl_test
-  username: root
-  encoding: utf8
-  local_infile: true
-  # the tests would require a rework: disabling casting for now
-  cast: false
-
 postgresql: &postgresql
   adapter: postgresql
   database: activewarehouse_etl_test
-  username: postgres
 
 # TODO - refactor test to avoid using 2 databases maybe?
 operational_database:
@@ -25,5 +14,5 @@ data_warehouse:
   <<: *<%= ENV['DB'] %>
 
 etl_execution:
-  adapter: mysql2
+  adapter: postgresql
   database: etl_execution

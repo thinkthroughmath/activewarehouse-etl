@@ -18,6 +18,25 @@ If you're lost, please ask questions on the "Google Group":http://groups.google.
 
 One thing to keep in mind is that ActiveWarehouse-ETL is highly hackable: you can pretty much create all you need with extra ruby code, even if it's not currently supported.
 
+h2. Running the tests
+
+This version only runs test with postgresql. Remove the mysql config from test/config/database.yml.
+
+For a particular Gemfile in test/config/gemfiles, for example Gemfile.rails-4.2.x, run these commands once to get set up:
+
+```
+$ bundle install --gemfile=test/config/gemfiles/Gemfile.rails-4.2.x
+$ BUNDLE_GEMFILE=test/config/gemfiles/Gemfile.rails-4.2.x DB=postgresql RAILS_ENV=postgresql bundle exec rake db:create
+BUNDLE_GEMFILE=test/config/gemfiles/Gemfile.rails-4.2.x DB=postgresql RAILS_ENV=etl_execution bundle exec rake db:create
+$ BUNDLE_GEMFILE=test/config/gemfiles/Gemfile.rails-4.2.x DB=postgresql RAILS_ENV=postgresql bundle exec rake db:schema:load
+```
+
+Then to run the tests:
+
+```
+$ BUNDLE_GEMFILE=test/config/gemfiles/Gemfile.rails-4.2.x DB=postgresql RAILS_ENV=postgresql bundle exec rake test
+```
+
 h2. Compatibility
 
 See "Travis":http://travis-ci.org/activewarehouse/activewarehouse-etl and our set of "gemfiles":https://github.com/activewarehouse/activewarehouse-etl/tree/master/test/config/gemfiles for the currently tested combinations.
@@ -38,7 +57,7 @@ TODO: explain how to run the tests like on Travis.
     @rake "ci:run_one[mysql2,test/config/gemfiles/Gemfile.rails-3.0.x]"@
 
 or for all the combinations:
-    
+
     @rake ci:run_matrix@
 
 h2. Contributors
