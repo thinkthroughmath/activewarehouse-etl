@@ -46,6 +46,7 @@ module ETL #:nodoc:
         path = Pathname.new(configuration[:file])
         @file = path.absolute? ? path : Pathname.new(File.dirname(File.expand_path(control.file))) + path
         @append = configuration[:append] ||= false
+        @debugging = configuration[:debug] ||= false
         @separator = configuration[:separator] ||= ','
         @eol = configuration[:eol] ||= "\n"
         @enclose = configuration[:enclose]
@@ -63,6 +64,11 @@ module ETL #:nodoc:
         buffer << append_rows if append_rows
         flush
         f.close
+        if @debugging
+          cp_filename = "#{file}.%d" % Time.now.to_i
+          FileUtils.cp file, cp_filename
+          puts "Destination: saving copy to #{cp_filename}"
+        end
       end
 
       # Flush the destination buffer
