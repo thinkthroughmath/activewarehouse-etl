@@ -89,6 +89,8 @@ module ETL #:nodoc:
           end
 
           before_execute.call(conn)
+          ETL::Engine.logger.debug "Loading in table #{table_name} with columns #{columns.join(',')}"
+          ETL::Engine.logger.debug "File contents:\n#{File.read(file)}"
           conn.bulk_load(file, table_name, options)
         end
       end
