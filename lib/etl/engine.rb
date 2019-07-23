@@ -68,12 +68,8 @@ module ETL #:nodoc:
 
       def logger #:nodoc:
         unless @logger
-          if timestamped_log
-            @logger = Logger.new("etl_#{timestamp}.log")
-          else
-            @logger = Logger.new(File.open('etl.log', log_write_mode))
-          end
-          @logger.level = Logger::INFO
+          @logger = Logger.new(STDOUT)
+          @logger.level = ENV['ETL_DEBUG'].present? ? Logger::DEBUG : Logger::INFO
           @logger.formatter = Logger::Formatter.new
         end
         @logger
