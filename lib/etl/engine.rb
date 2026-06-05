@@ -30,8 +30,22 @@ module ETL #:nodoc:
           require File.join(@rails_root, 'config/environment') if @rails_root
           options[:config] ||= (ENV['DATABASE_CONFIG'] || 'database.yml')
           options[:config] = 'config/database.yml' unless File.exist?(options[:config])
-          database_configuration = YAML::load(ERB.new(IO.read(options[:config])).result + "\n")
-          ActiveRecord::Base.configurations.merge!(database_configuration)
+          # YAML.load on Ruby 3 must opt-in to alias and class deserialization.
+          erb_result = ERB.new(IO.read(options[:config])).result + "\n"
+          database_configuration = YAML.respond_to?(:unsafe_load) ? YAML.unsafe_load(erb_result) : YAML.load(erb_result)
+          # Rails 6.1+ replaced the Hash-based configurations API with
+          # ActiveRecord::DatabaseConfigurations. The old `merge!` mutator was
+          # removed; use the supported writer that re-resolves the config set.
+          if ActiveRecord::Base.respond_to?(:configurations=) && defined?(ActiveRecord::DatabaseConfigurations)
+            existing = ActiveRecord::Base.configurations.configurations.each_with_object({}) do |config, memo|
+              memo[config.env_name] ||= {}
+              memo[config.env_name][config.name] = config.configuration_hash.stringify_keys
+            end
+            existing.deep_merge!(stringify_db_config(database_configuration))
+            ActiveRecord::Base.configurations = existing
+          else
+            ActiveRecord::Base.configurations.merge!(database_configuration)
+          end
           ETL::Base.configurations = HashWithIndifferentAccess.new(database_configuration)
           #puts "configurations in init: #{ActiveRecord::Base.configurations.inspect}"
 
@@ -204,8 +218,21 @@ module ETL #:nodoc:
         logger.debug "Establishing connection to #{name}"
         conn_config = ETL::Base.configurations[name.to_s]
         raise ETL::ETLError, "Cannot find connection named #{name.inspect}" unless conn_config
+        # Rails 6.1+ wraps env entries in DatabaseConfigurations; pull the raw
+        # hash out before we feed it to the per-adapter connect method.
+        if conn_config.respond_to?(:configuration_hash)
+          conn_config = conn_config.configuration_hash.stringify_keys
+        end
         connection_method = "#{conn_config['adapter']}_connection"
         ETL::Base.send(connection_method, conn_config)
+      end
+
+      # Recursively stringify keys for compatibility with the legacy nested-Hash
+      # form Rails accepts when assigning to `configurations=`.
+      def stringify_db_config(hash)
+        hash.each_with_object({}) do |(k, v), memo|
+          memo[k.to_s] = v.is_a?(Hash) ? stringify_db_config(v) : v
+        end
       end
     end # class << self
 

@@ -47,12 +47,10 @@ if ActiveSupport::VERSION::STRING >= '3.2'
   require 'active_support/core_ext/class/attribute_accessors'
 end
 
-if RUBY_VERSION < '1.9'
-  require 'faster_csv'
-  CSV = FasterCSV unless defined?(CSV)
-else
-  require 'csv'
-end
+require 'csv'
+# FasterCSV was merged into stdlib CSV in Ruby 1.9. Some legacy callers in this
+# codebase still reference FasterCSV; alias it to ::CSV unconditionally.
+FasterCSV = ::CSV unless defined?(::FasterCSV)
 
 # patch for https://github.com/activewarehouse/activewarehouse-etl/issues/24
 # allow components to require optional gems

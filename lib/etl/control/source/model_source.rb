@@ -25,13 +25,13 @@ module ETL #:nodoc:
       end
          
       def each(&block)
-          railsmodel.to_s.camelize.constantize.find(:all,:order=>order).each do |row|
-            result_row = ETL::Row.new
-            result_row.source = self
-            columns.each do |column|
-              result_row[column.to_sym] = row.send(column)
-            end
-            yield result_row
+        railsmodel.to_s.camelize.constantize.order(order).each do |row|
+          result_row = ETL::Row.new
+          result_row.source = self
+          columns.each do |column|
+            result_row[column.to_sym] = row.send(column)
+          end
+          yield result_row
         end
       end
     end
