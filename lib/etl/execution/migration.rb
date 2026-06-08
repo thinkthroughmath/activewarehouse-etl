@@ -14,20 +14,15 @@ module ETL #:nodoc:
         alias :schema_migrations_table_name :schema_info_table_name
 
         public
-        # Execute the migrations
+        # Execute the migrations. Engine.init has already established the
+        # etl_execution connection. Rails 7.1 made SchemaMigration per-connection;
+        # use the connection's schema_migration to create/track versions.
         def migrate
-          # Engine.init has already established the etl_execution connection;
-          # do not re-establish here (Rails 7 establish_connection(symbol) treats
-          # the symbol as an env name under DatabaseConfigurations and would
-          # fail for the legacy flat database.yml form).
-          # Rails 7.1 made SchemaMigration per-connection; create the tracking
-          # table via the connection's schema_migration if missing.
           schema_migration = connection.schema_migration
           schema_migration.create_table unless schema_migration.table_exists?
-          existing_versions = schema_migration.versions.map(&:to_i)
           last_migration.upto(target - 1) do |i|
             __send__("migration_#{i+1}".to_sym)
-            schema_migration.create_version(i + 1) unless existing_versions.include?(i + 1)
+            schema_migration.create_version(i + 1)
           end
         end
 

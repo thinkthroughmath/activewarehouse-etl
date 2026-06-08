@@ -88,8 +88,7 @@ module ETL #:nodoc:
             value = row[name]
             case value
             when Date, Time, DateTime
-              # Rails 7 removed Time#to_s(format); use to_fs.
-              value.respond_to?(:to_fs) ? value.to_fs(:db) : value.to_s(:db)
+              value.to_fs(:db)
             else
               value.to_s
             end

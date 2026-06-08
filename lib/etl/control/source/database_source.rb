@@ -180,7 +180,7 @@ module ETL #:nodoc:
             .where('control_file = ? AND completed_at IS NOT NULL', control.file)
             .maximum(:created_at)
           if last_completed
-            conditions << "#{new_records_only} > #{connection.quote(last_completed.utc.strftime('%Y-%m-%d %H:%M:%S'))}"
+            conditions << "#{new_records_only} > #{connection.quote(last_completed.utc.to_fs(:db))}"
           end
         end
         

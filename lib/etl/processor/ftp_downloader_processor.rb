@@ -3,9 +3,8 @@
 
 module ETL
   module Processor
-    # Custom processor to download files via FTP. The `net/ftp` stdlib was
-    # extracted as a separate gem in Ruby 3.1; require lazily so consumers
-    # who don't use FTP don't need to install the gem.
+    # Custom processor to download files via FTP. net/ftp is loaded lazily
+    # inside `process` so consumers who don't use FTP don't need the gem.
     class FtpDownloaderProcessor < ETL::Processor::Processor
       attr_reader :host
       attr_reader :port

@@ -109,8 +109,7 @@ class SQLResolver
   def resolve(value)
     return nil if value.nil?
     if @use_cache
-      key = value.is_a?(Array) ? value.map(&:to_s) : value.to_s
-      cache[key]
+      cache[stringify_key(value)]
     else
       @connection.select_value("SELECT id FROM #{table_name} WHERE #{wheres(value)}")
     end
@@ -127,10 +126,9 @@ class SQLResolver
   def load_cache
     puts "Caching values for #{table_name}..."
     q = "SELECT id, #{field.join(', ')} FROM #{table_name}"
+    composite = @field.kind_of?(Array)
     @connection.select_all(q).each do |record|
-      # Rails 7's PG adapter returns integer columns as Integer; CSV input
-      # values arrive as Strings, so coerce keys to String for lookup parity.
-      ck = @field.kind_of?(Array) ? record.values_at(*@field).map(&:to_s) : record[@field].to_s
+      ck = composite ? record.values_at(*@field).map(&:to_s) : record[@field].to_s
       cache[ck] = record['id']
     end
     @use_cache = true
@@ -138,19 +136,19 @@ class SQLResolver
 
   private
 
+  # Coerce cache keys to String so Integer columns (Rails 7 PG) match CSV
+  # input values which arrive as Strings.
+  def stringify_key(value)
+    value.is_a?(Array) ? value.map(&:to_s) : value.to_s
+  end
+
   def field
-    if @field.kind_of?(Array)
-      @field
-    else
-      [ @field ]
-    end
+    @field.kind_of?(Array) ? @field : [@field]
   end
 
   def wheres(value)
-    value  = [ value ]  unless value.kind_of?(Array)
-    field.zip(value).collect { |a|
-      "#{a[0]} = #{@connection.quote(a[1])}"
-    }.join(' AND ')
+    value = [value] unless value.kind_of?(Array)
+    field.zip(value).collect { |a| "#{a[0]} = #{@connection.quote(a[1])}" }.join(' AND ')
   end
 end
 

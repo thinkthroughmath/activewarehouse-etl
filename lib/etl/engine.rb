@@ -30,36 +30,28 @@ module ETL #:nodoc:
           require File.join(@rails_root, 'config/environment') if @rails_root
           options[:config] ||= (ENV['DATABASE_CONFIG'] || 'database.yml')
           options[:config] = 'config/database.yml' unless File.exist?(options[:config])
-          # YAML.load on Ruby 3 must opt-in to alias and class deserialization.
-          erb_result = ERB.new(IO.read(options[:config])).result + "\n"
-          database_configuration = YAML.respond_to?(:unsafe_load) ? YAML.unsafe_load(erb_result) : YAML.load(erb_result)
-          # Rails 6.1+ replaced the Hash-based configurations API with
-          # ActiveRecord::DatabaseConfigurations. The old `merge!` mutator was
-          # removed; use the supported writer that re-resolves the config set.
-          if ActiveRecord::Base.respond_to?(:configurations=) && defined?(ActiveRecord::DatabaseConfigurations)
-            existing = ActiveRecord::Base.configurations.configurations.each_with_object({}) do |config, memo|
-              memo[config.env_name] ||= {}
-              memo[config.env_name][config.name] = config.configuration_hash.stringify_keys
-            end
-            existing.deep_merge!(stringify_db_config(database_configuration))
-            ActiveRecord::Base.configurations = existing
-          else
-            ActiveRecord::Base.configurations.merge!(database_configuration)
+          # ERB-templated database.yml may include YAML aliases, so use unsafe_load.
+          database_configuration = YAML.unsafe_load(ERB.new(IO.read(options[:config])).result + "\n")
+
+          # Merge our parsed YAML into the Rails DatabaseConfigurations registry
+          # and stash a string-keyed copy for per-target lookups.
+          existing = ActiveRecord::Base.configurations.configurations.each_with_object({}) do |config, memo|
+            memo[config.env_name] ||= {}
+            memo[config.env_name][config.name] = config.configuration_hash.stringify_keys
           end
-          # Persist the parsed YAML on a class-instance variable so all per-target
-          # lookups (establish_connection, host, database, etc.) read from the
-          # raw Hash regardless of how Rails 6.1+ wraps ActiveRecord::Base
-          # .configurations into DatabaseConfigurations.
+          existing.deep_merge!(database_configuration.deep_stringify_keys)
+          ActiveRecord::Base.configurations = existing
+
           @database_configuration = HashWithIndifferentAccess.new(database_configuration)
           ETL::Base.configurations = @database_configuration
+          @config_for_cache = {}
 
           require 'etl/execution'
-          # Rails 7 establish_connection(symbol) interprets the symbol as an env
-          # under DatabaseConfigurations. For the legacy flat database.yml form
-          # used here, resolve the connection hash directly so it works
-          # regardless of Rails.env or ActiveRecord configuration shape.
-          etl_config = config_for('etl_execution')
-          if etl_config
+          # Rails 7 establish_connection(symbol) treats the symbol as an env name
+          # under DatabaseConfigurations. The legacy flat database.yml here uses
+          # symbols as connection names; pass the resolved hash directly with
+          # `name:` so the pool registers under :etl_execution.
+          if (etl_config = config_for('etl_execution'))
             ETL::Execution::Base.establish_connection(
               etl_config.transform_keys(&:to_sym).merge(name: 'etl_execution')
             )
@@ -219,28 +211,29 @@ module ETL #:nodoc:
         end
       end
 
-      # Single source of truth for per-target connection config. Reads from the
-      # parsed YAML captured by `init` (a plain Hash). Falls back to whatever
-      # `ETL::Base.configurations` returns to remain compatible with consumers
-      # that bypass Engine.init. Public so per-source/per-processor host/db
-      # helpers (DatabaseSource#host, etc.) can reach it.
+      # Single source of truth for per-target connection config. Reads from
+      # the parsed YAML captured by `init`, falling back to ActiveRecord's
+      # DatabaseConfigurations for callers that bypass Engine.init. Returns a
+      # string-keyed Hash. Public so DatabaseSource#host etc. can reach it.
       def config_for(name)
         key = name.to_s
-        if @database_configuration && @database_configuration.key?(key)
-          return @database_configuration[key].to_h.stringify_keys
-        end
-        configs = ETL::Base.configurations
-        if configs.respond_to?(:configs_for)
-          # Rails 6.1+ DatabaseConfigurations
-          db_config = configs.configs_for(env_name: key).first ||
-                      configs.configs_for.find { |c| c.name == key }
-          return db_config.configuration_hash.stringify_keys if db_config
-        end
-        return configs[key].stringify_keys if configs.respond_to?(:[]) && configs[key]
-        nil
+        cache = (@config_for_cache ||= {})
+        return cache[key] if cache.key?(key)
+
+        cache[key] = resolve_config(key)
       end
 
       protected
+
+      def resolve_config(key)
+        return @database_configuration[key].to_h.stringify_keys if @database_configuration&.key?(key)
+
+        configs = ETL::Base.configurations
+        db_config = configs.configs_for(env_name: key).first ||
+                    configs.configs_for.find { |c| c.name == key }
+        db_config&.configuration_hash&.stringify_keys
+      end
+
       # Hash of database connections that can be used throughout the ETL
       # process
       def connections
@@ -255,15 +248,7 @@ module ETL #:nodoc:
         conn_config = config_for(name)
         raise ETL::ETLError, "Cannot find connection named #{name.inspect}" unless conn_config
         connection_method = "#{conn_config['adapter']}_connection"
-        ETL::Base.send(connection_method, conn_config.transform_keys(&:to_s))
-      end
-
-      # Recursively stringify keys for compatibility with the legacy nested-Hash
-      # form Rails accepts when assigning to `configurations=`.
-      def stringify_db_config(hash)
-        hash.each_with_object({}) do |(k, v), memo|
-          memo[k.to_s] = v.is_a?(Hash) ? stringify_db_config(v) : v
-        end
+        ETL::Base.send(connection_method, conn_config)
       end
     end # class << self
 

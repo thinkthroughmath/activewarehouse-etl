@@ -28,27 +28,13 @@
 require 'logger'
 require 'yaml'
 require 'erb'
-
-require 'rubygems'
-
+require 'csv'
 require 'rexml'
-unless defined?(REXML::VERSION)
-  REXML::VERSION = REXML::Version
-end
 
 require 'active_support'
 require 'active_record'
+require 'active_support/core_ext/class/attribute_accessors'
 require 'adapter_extensions'
-
-if ActiveSupport::VERSION::STRING >= '3.2'
-  # support for cattr_accessor
-  require 'active_support/core_ext/class/attribute_accessors'
-end
-
-require 'csv'
-# FasterCSV was merged into stdlib CSV in Ruby 1.9. Some legacy callers in this
-# codebase still reference FasterCSV; alias it to ::CSV unconditionally.
-FasterCSV = ::CSV unless defined?(::FasterCSV)
 
 # patch for https://github.com/activewarehouse/activewarehouse-etl/issues/24
 # allow components to require optional gems
