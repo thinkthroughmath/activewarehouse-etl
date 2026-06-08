@@ -22,6 +22,8 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency('activesupport',       '>= 7.0', '< 8.0')
   s.add_runtime_dependency('activerecord',        '>= 7.0', '< 8.0')
   s.add_runtime_dependency('adapter_extensions',  '>= 1.0.1')
+  s.add_runtime_dependency('rexml',               '>= 3.2')
+  s.add_runtime_dependency('csv',                 '>= 3.2')
 
   s.add_development_dependency('shoulda', '~>3.5.0')
   s.add_development_dependency('flexmock', '~> 2.0.4')
