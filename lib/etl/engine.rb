@@ -52,11 +52,12 @@ module ETL #:nodoc:
           require 'etl/execution'
           # Rails 7 establish_connection(symbol) interprets the symbol as an env
           # under DatabaseConfigurations. For the legacy flat database.yml form
-          # used here, resolve the connection hash directly so it works
-          # regardless of Rails.env.
-          etl_config = ETL::Base.configurations[:etl_execution] || ETL::Base.configurations['etl_execution']
+          # used here, resolve the connection hash directly from the YAML we
+          # just parsed, so it works regardless of Rails.env or ActiveRecord
+          # configuration shape.
+          etl_config = database_configuration['etl_execution'] || database_configuration[:etl_execution]
           if etl_config
-            ETL::Execution::Base.establish_connection(etl_config.to_h.symbolize_keys)
+            ETL::Execution::Base.establish_connection(etl_config.transform_keys(&:to_sym))
           else
             ETL::Execution::Base.establish_connection :etl_execution
           end
