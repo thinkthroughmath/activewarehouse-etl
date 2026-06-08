@@ -46,7 +46,7 @@ module ETL #:nodoc:
 
             case value
             when Date, Time, DateTime
-              value = value.to_s(:db)
+              value = value.respond_to?(:to_fs) ? value.to_fs(:db) : value.to_s(:db)
             end
 
             yaml[key] = value

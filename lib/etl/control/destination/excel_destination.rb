@@ -62,7 +62,7 @@ module ETL
             value = row[name]
             case value
             when Date, Time, DateTime
-              value.to_s(:db)
+              value.respond_to?(:to_fs) ? value.to_fs(:db) : value.to_s(:db)
             else
               value.to_s
             end
