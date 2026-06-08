@@ -25,7 +25,8 @@ module ETL #:nodoc:
         when :float
           value.to_f
         when :decimal
-          BigDecimal.new(value.to_s, @significant)
+          # BigDecimal.new was removed in Ruby 2.5; use Kernel constructor.
+          BigDecimal(value.to_s, @significant)
         else
           raise "Unsupported type: #{@type}"
         end

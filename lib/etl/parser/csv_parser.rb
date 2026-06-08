@@ -12,7 +12,8 @@ module ETL #:nodoc:
       
       def get_fields_names(file)
         File.open(file) do |input|
-          fields = CSV.parse(input.readline, options).first
+          # Ruby 3 / CSV 3.3 expect kwargs, not a positional Hash.
+          fields = CSV.parse(input.readline, **options).first
           new_fields = []
           fields.each_with_index do |field,index|
             # compute the index of occurrence of this specific occurrence of the field (usually, will be 1)
@@ -35,7 +36,7 @@ module ETL #:nodoc:
           end
           line = 0
           lines_skipped = 0
-          CSV.foreach(file, options) do |raw_row|
+          CSV.foreach(file, **options) do |raw_row|
             if lines_skipped < source.skip_lines
               ETL::Engine.logger.debug "skipping line"
               lines_skipped += 1
