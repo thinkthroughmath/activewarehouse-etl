@@ -32,10 +32,15 @@ require 'erb'
 require 'rubygems'
 
 unless defined?(REXML::VERSION)
-  require 'rexml/rexml'
-  unless defined?(REXML::VERSION)
-    REXML::VERSION = REXML::Version
+  # REXML 3.x (Ruby 3+) exposes the version via rexml/version. Earlier
+  # releases shipped rexml/rexml; fall back to the shim used by older code
+  # that still references REXML::Version.
+  begin
+    require 'rexml/version'
+  rescue LoadError
+    require 'rexml/rexml'
   end
+  REXML::VERSION = REXML::Version unless defined?(REXML::VERSION)
 end
 
 require 'active_support'
