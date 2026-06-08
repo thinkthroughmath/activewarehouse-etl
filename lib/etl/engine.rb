@@ -57,7 +57,11 @@ module ETL #:nodoc:
           # configuration shape.
           etl_config = database_configuration['etl_execution'] || database_configuration[:etl_execution]
           if etl_config
-            ETL::Execution::Base.establish_connection(etl_config.transform_keys(&:to_sym))
+            # Pass name: so Rails 7 registers the pool under :etl_execution,
+            # which matches what ETL::Execution::Base.connection expects.
+            ETL::Execution::Base.establish_connection(
+              etl_config.transform_keys(&:to_sym).merge(name: 'etl_execution')
+            )
           else
             ETL::Execution::Base.establish_connection :etl_execution
           end
