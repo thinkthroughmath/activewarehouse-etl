@@ -1,11 +1,11 @@
 # Written by Susan Potter  under open source MIT license.
 # August 12, 2007.
 
-require 'net/ftp'
-
 module ETL
   module Processor
-    # Custom processor to download files via FTP
+    # Custom processor to download files via FTP. The `net/ftp` stdlib was
+    # extracted as a separate gem in Ruby 3.1; require lazily so consumers
+    # who don't use FTP don't need to install the gem.
     class FtpDownloaderProcessor < ETL::Processor::Processor
       attr_reader :host
       attr_reader :port
@@ -44,6 +44,7 @@ module ETL
       end
       
       def process
+        require 'net/ftp'
         Net::FTP.open(@host) do |conn|
           conn.connect(@host, @port)
           conn.login(@username, @password)
