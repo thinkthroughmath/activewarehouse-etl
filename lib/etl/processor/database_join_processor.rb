@@ -78,11 +78,11 @@ module ETL
       
       # Get the host, defaults to 'localhost'
       def host
-        ETL::Base.configurations[target.to_s]['host'] || 'localhost'
+        (ETL::Engine.config_for(target) || {})['host'] || 'localhost'
       end
-      
+
       def database
-        ETL::Base.configurations[target.to_s]['database']
+        (ETL::Engine.config_for(target) || {})['database']
       end
     end
   end

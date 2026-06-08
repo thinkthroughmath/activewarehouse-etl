@@ -43,7 +43,7 @@ class MySqlStreamer
   def each
     keys = nil
 
-    config = ETL::Base.configurations[@name.to_s]
+    config = ETL::Engine.config_for(@name)
     host = mandatory_option!(config, 'host')
     username = mandatory_option!(config, 'username')
     database = mandatory_option!(config, 'database')

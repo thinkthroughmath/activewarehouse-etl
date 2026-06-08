@@ -46,19 +46,20 @@ module ETL #:nodoc:
           else
             ActiveRecord::Base.configurations.merge!(database_configuration)
           end
-          ETL::Base.configurations = HashWithIndifferentAccess.new(database_configuration)
-          #puts "configurations in init: #{ActiveRecord::Base.configurations.inspect}"
+          # Persist the parsed YAML on a class-instance variable so all per-target
+          # lookups (establish_connection, host, database, etc.) read from the
+          # raw Hash regardless of how Rails 6.1+ wraps ActiveRecord::Base
+          # .configurations into DatabaseConfigurations.
+          @database_configuration = HashWithIndifferentAccess.new(database_configuration)
+          ETL::Base.configurations = @database_configuration
 
           require 'etl/execution'
           # Rails 7 establish_connection(symbol) interprets the symbol as an env
           # under DatabaseConfigurations. For the legacy flat database.yml form
-          # used here, resolve the connection hash directly from the YAML we
-          # just parsed, so it works regardless of Rails.env or ActiveRecord
-          # configuration shape.
-          etl_config = database_configuration['etl_execution'] || database_configuration[:etl_execution]
+          # used here, resolve the connection hash directly so it works
+          # regardless of Rails.env or ActiveRecord configuration shape.
+          etl_config = config_for('etl_execution')
           if etl_config
-            # Pass name: so Rails 7 registers the pool under :etl_execution,
-            # which matches what ETL::Execution::Base.connection expects.
             ETL::Execution::Base.establish_connection(
               etl_config.transform_keys(&:to_sym).merge(name: 'etl_execution')
             )
@@ -230,15 +231,30 @@ module ETL #:nodoc:
         raise ETL::ETLError, "Connection with no name requested. Is there a missing :target parameter somewhere?" if name.blank?
 
         logger.debug "Establishing connection to #{name}"
-        conn_config = ETL::Base.configurations[name.to_s]
+        conn_config = config_for(name)
         raise ETL::ETLError, "Cannot find connection named #{name.inspect}" unless conn_config
-        # Rails 6.1+ wraps env entries in DatabaseConfigurations; pull the raw
-        # hash out before we feed it to the per-adapter connect method.
-        if conn_config.respond_to?(:configuration_hash)
-          conn_config = conn_config.configuration_hash.stringify_keys
-        end
         connection_method = "#{conn_config['adapter']}_connection"
-        ETL::Base.send(connection_method, conn_config)
+        ETL::Base.send(connection_method, conn_config.transform_keys(&:to_s))
+      end
+
+      # Single source of truth for per-target connection config. Reads from the
+      # parsed YAML captured by `init` (a plain Hash). Falls back to whatever
+      # `ETL::Base.configurations` returns to remain compatible with consumers
+      # that bypass Engine.init.
+      def config_for(name)
+        key = name.to_s
+        if @database_configuration && @database_configuration.key?(key)
+          return @database_configuration[key].to_h.stringify_keys
+        end
+        configs = ETL::Base.configurations
+        if configs.respond_to?(:configs_for)
+          # Rails 6.1+ DatabaseConfigurations
+          db_config = configs.configs_for(env_name: key).first ||
+                      configs.configs_for.find { |c| c.name == key }
+          return db_config.configuration_hash.stringify_keys if db_config
+        end
+        return configs[key].stringify_keys if configs.respond_to?(:[]) && configs[key]
+        nil
       end
 
       # Recursively stringify keys for compatibility with the legacy nested-Hash
