@@ -108,16 +108,12 @@ class SQLResolver
 
   def resolve(value)
     return nil if value.nil?
-    r = nil
     if @use_cache
-      r = cache[value]
-      # puts "resolve failed: #{value.class.name}:#{value.inspect} from: #{@table}.#{@field}" unless r
+      key = value.is_a?(Array) ? value.map(&:to_s) : value.to_s
+      cache[key]
     else
-      q = "SELECT id FROM #{table_name} WHERE #{wheres(value)}"
-      # puts q
-      r = @connection.select_value(q)
+      @connection.select_value("SELECT id FROM #{table_name} WHERE #{wheres(value)}")
     end
-    r
   end
 
   def table_name
@@ -131,12 +127,10 @@ class SQLResolver
   def load_cache
     puts "Caching values for #{table_name}..."
     q = "SELECT id, #{field.join(', ')} FROM #{table_name}"
-    # puts q
     @connection.select_all(q).each do |record|
-      ck = @field.kind_of?(Array) ? record.values_at(*@field) : record[@field]
-      # puts "load_cache key: #{ck.class.name}:#{ck.inspect}"
-      # puts "  #{@field.class.name}:#{@field.inspect}"
-      # puts "  #{record[@field].class.name}:#{record[@field].inspect}"
+      # Rails 7's PG adapter returns integer columns as Integer; CSV input
+      # values arrive as Strings, so coerce keys to String for lookup parity.
+      ck = @field.kind_of?(Array) ? record.values_at(*@field).map(&:to_s) : record[@field].to_s
       cache[ck] = record['id']
     end
     @use_cache = true
