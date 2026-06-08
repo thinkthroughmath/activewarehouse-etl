@@ -50,7 +50,16 @@ module ETL #:nodoc:
           #puts "configurations in init: #{ActiveRecord::Base.configurations.inspect}"
 
           require 'etl/execution'
-          ETL::Execution::Base.establish_connection :etl_execution
+          # Rails 7 establish_connection(symbol) interprets the symbol as an env
+          # under DatabaseConfigurations. For the legacy flat database.yml form
+          # used here, resolve the connection hash directly so it works
+          # regardless of Rails.env.
+          etl_config = ETL::Base.configurations[:etl_execution] || ETL::Base.configurations['etl_execution']
+          if etl_config
+            ETL::Execution::Base.establish_connection(etl_config.to_h.symbolize_keys)
+          else
+            ETL::Execution::Base.establish_connection :etl_execution
+          end
           ETL::Execution::Execution.migrate
 
           @initialized = true

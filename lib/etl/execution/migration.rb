@@ -16,7 +16,10 @@ module ETL #:nodoc:
         public
         # Execute the migrations
         def migrate
-          ETL::Execution::Base.establish_connection(:etl_execution)
+          # Engine.init has already established the etl_execution connection;
+          # do not re-establish here (Rails 7 establish_connection(symbol) treats
+          # the symbol as an env name under DatabaseConfigurations and would
+          # fail for the legacy flat database.yml form).
           # Rails 7.1 made SchemaMigration per-connection; create the tracking
           # table via the connection's schema_migration if missing.
           schema_migration = connection.schema_migration
