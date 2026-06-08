@@ -219,6 +219,27 @@ module ETL #:nodoc:
         end
       end
 
+      # Single source of truth for per-target connection config. Reads from the
+      # parsed YAML captured by `init` (a plain Hash). Falls back to whatever
+      # `ETL::Base.configurations` returns to remain compatible with consumers
+      # that bypass Engine.init. Public so per-source/per-processor host/db
+      # helpers (DatabaseSource#host, etc.) can reach it.
+      def config_for(name)
+        key = name.to_s
+        if @database_configuration && @database_configuration.key?(key)
+          return @database_configuration[key].to_h.stringify_keys
+        end
+        configs = ETL::Base.configurations
+        if configs.respond_to?(:configs_for)
+          # Rails 6.1+ DatabaseConfigurations
+          db_config = configs.configs_for(env_name: key).first ||
+                      configs.configs_for.find { |c| c.name == key }
+          return db_config.configuration_hash.stringify_keys if db_config
+        end
+        return configs[key].stringify_keys if configs.respond_to?(:[]) && configs[key]
+        nil
+      end
+
       protected
       # Hash of database connections that can be used throughout the ETL
       # process
@@ -235,26 +256,6 @@ module ETL #:nodoc:
         raise ETL::ETLError, "Cannot find connection named #{name.inspect}" unless conn_config
         connection_method = "#{conn_config['adapter']}_connection"
         ETL::Base.send(connection_method, conn_config.transform_keys(&:to_s))
-      end
-
-      # Single source of truth for per-target connection config. Reads from the
-      # parsed YAML captured by `init` (a plain Hash). Falls back to whatever
-      # `ETL::Base.configurations` returns to remain compatible with consumers
-      # that bypass Engine.init.
-      def config_for(name)
-        key = name.to_s
-        if @database_configuration && @database_configuration.key?(key)
-          return @database_configuration[key].to_h.stringify_keys
-        end
-        configs = ETL::Base.configurations
-        if configs.respond_to?(:configs_for)
-          # Rails 6.1+ DatabaseConfigurations
-          db_config = configs.configs_for(env_name: key).first ||
-                      configs.configs_for.find { |c| c.name == key }
-          return db_config.configuration_hash.stringify_keys if db_config
-        end
-        return configs[key].stringify_keys if configs.respond_to?(:[]) && configs[key]
-        nil
       end
 
       # Recursively stringify keys for compatibility with the legacy nested-Hash
