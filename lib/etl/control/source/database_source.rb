@@ -159,13 +159,28 @@ module ETL #:nodoc:
           CSV.open(file, 'w') do |f|
             f << columns
             query_rows.each do |row|
-              f << columns.collect { |column| row[column.to_s] }
+              f << columns.collect { |column| serialize_local(row[column.to_s]) }
               lines += 1
             end
           end
           File.open(local_file_trigger(file), 'w') {|f| }
         end
         ETL::Engine.logger.info "Stored locally in #{t}s (avg: #{lines/t} lines/sec)"
+      end
+
+      # CSV.<< implicitly calls .to_s, which on Ruby 3 / pg 1.5 strips
+      # fractional seconds for Time / DateTime / TimeWithZone. Downstream SCD
+      # comparisons that round-trip through the local cache then lose
+      # microsecond precision and over-trigger new dimension versions.
+      # Serialize timestamps with full precision so the cached form parses
+      # back identically to what pg returned.
+      def serialize_local(value)
+        case value
+        when Time, DateTime, ActiveSupport::TimeWithZone
+          value.strftime('%Y-%m-%d %H:%M:%S.%6N')
+        else
+          value
+        end
       end
       
       # Get the query to use
