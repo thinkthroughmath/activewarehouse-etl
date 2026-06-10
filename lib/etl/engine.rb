@@ -240,15 +240,22 @@ module ETL #:nodoc:
         @connections ||= {}
       end
 
-      # Establish the named connection and return the database specific connection
+      # Establish the named connection and return the database specific connection.
+      # Rails 7.2 removed the direct ETL::Base.send(:postgresql_connection, config)
+      # adapter constructor and rejects anonymous AR subclasses, so go through
+      # the connection_handler with ETL::Base as the owner. Each target gets
+      # its own pool keyed by `name:`.
       def establish_connection(name)
         raise ETL::ETLError, "Connection with no name requested. Is there a missing :target parameter somewhere?" if name.blank?
 
         logger.debug "Establishing connection to #{name}"
         conn_config = config_for(name)
         raise ETL::ETLError, "Cannot find connection named #{name.inspect}" unless conn_config
-        connection_method = "#{conn_config['adapter']}_connection"
-        ETL::Base.send(connection_method, conn_config)
+
+        config_hash = conn_config.transform_keys(&:to_sym).merge(name: name.to_s)
+        pool = ActiveRecord::Base.connection_handler.establish_connection(config_hash, owner_name: ETL::Base)
+        # Rails 7.2 renamed ConnectionPool#connection to #lease_connection.
+        pool.lease_connection
       end
     end # class << self
 

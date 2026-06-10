@@ -5,24 +5,27 @@ module ETL #:nodoc:
     class Migration
       class << self
         protected
-        # Get the schema info table name. Rails 7+ removed the class method
-        # ActiveRecord::Migrator.schema_migrations_table_name; the value lives
-        # on the connection's schema_migration object.
+        # Get the schema info table name. Rails 7.2 moved schema_migration off
+        # the adapter onto the connection pool.
         def schema_info_table_name
-          connection.schema_migration.table_name
+          schema_migration.table_name
         end
         alias :schema_migrations_table_name :schema_info_table_name
 
+        # Rails 7.2's SchemaMigration registry is per-pool, not per-connection.
+        def schema_migration
+          ETL::Execution::Base.connection_pool.schema_migration
+        end
+
         public
         # Execute the migrations. Engine.init has already established the
-        # etl_execution connection. Rails 7.1 made SchemaMigration per-connection;
-        # use the connection's schema_migration to create/track versions.
+        # etl_execution connection.
         def migrate
-          schema_migration = connection.schema_migration
-          schema_migration.create_table unless schema_migration.table_exists?
+          sm = schema_migration
+          sm.create_table unless sm.table_exists?
           last_migration.upto(target - 1) do |i|
             __send__("migration_#{i+1}".to_sym)
-            schema_migration.create_version(i + 1)
+            sm.create_version(i + 1)
           end
         end
 
